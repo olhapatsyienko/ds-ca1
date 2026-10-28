@@ -23,7 +23,7 @@ export const handler = async (
 
   try {
     const payload = await verifier.verify(token);
-    const username = payload['cognito:username'];
+    const username = String(payload['cognito:username'] ?? payload.sub);
     return policy(payload.sub, 'Allow', event.methodArn, { username });
   } catch (err) {
     console.log('Token verification failed:', (err as Error).message);
