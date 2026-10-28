@@ -44,7 +44,16 @@ export const handler = async (
       return response(200, { data: actor });
     }
 
-    // Optional ?movie= adds that actor's role description in the movie, when one exists.
+    const movieResult = await ddb.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: { PK: movieKey(movieId), SK: movieKey(movieId) },
+      })
+    );
+    if (!movieResult.Item) {
+      return response(404, { message: `Movie ${movieId} not found` });
+    }
+
     const roleResult = await ddb.send(
       new GetCommand({
         TableName: tableName,
@@ -60,6 +69,6 @@ export const handler = async (
     });
   } catch (err) {
     console.error("DynamoDB error:", err);
-    return response(500, { message: "Internal server error", error: err });
+    return response(500, { message: "Internal server error" });
   }
 };

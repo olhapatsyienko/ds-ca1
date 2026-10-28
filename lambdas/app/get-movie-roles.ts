@@ -29,6 +29,16 @@ export const handler = async (
   }
 
   try {
+    const movieResult = await ddb.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: { PK: movieKey(movieId), SK: movieKey(movieId) },
+      })
+    );
+    if (!movieResult.Item) {
+      return response(404, { message: `Movie ${movieId} not found` });
+    }
+
     if (actorId !== undefined) {
       const roleResult = await ddb.send(
         new GetCommand({
@@ -56,9 +66,6 @@ export const handler = async (
     return response(200, { data: resultItems.filter(isRoleItem).map(toRole) });
   } catch (err) {
     console.error("DynamoDB error:", err);
-    return response(500, {
-      message: "Internal server error",
-      error: err,
-    });
+    return response(500, { message: "Internal server error" });
   }
 };
