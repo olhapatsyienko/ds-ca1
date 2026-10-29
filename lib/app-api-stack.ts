@@ -50,6 +50,8 @@ export class AppApiStack extends cdk.Stack {
 
     table.grantReadData(getMovieRolesFn);
     table.grantReadData(getActorFn);
+    table.grantReadWriteData(addMovieRoleFn);
+    table.grant(addMovieRoleFn, 'dynamodb:TransactWriteItems');
 
     // Sample data, written once when the stack is created.
     const items = seedItems();
@@ -96,6 +98,11 @@ export class AppApiStack extends cdk.Stack {
 
     const movieRolesResource = moviesResource.addResource('{movieID}').addResource('roles');
     movieRolesResource.addMethod('GET', new apig.LambdaIntegration(getMovieRolesFn), userAuth);
+
+    moviesResource.addResource('roles').addMethod(
+      'POST',
+      new apig.LambdaIntegration(addMovieRoleFn),
+    );
 
     api.root
       .addResource('actors')
