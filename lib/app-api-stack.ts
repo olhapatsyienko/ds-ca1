@@ -102,7 +102,15 @@ export class AppApiStack extends cdk.Stack {
     moviesResource.addResource('roles').addMethod(
       'POST',
       new apig.LambdaIntegration(addMovieRoleFn),
+      { apiKeyRequired: true },
     );
+
+    const adminKey = api.addApiKey('AdminApiKey');
+    const plan = api.addUsagePlan('AdminUsagePlan', {
+      apiStages: [{ api, stage: api.deploymentStage }],
+    });
+    plan.addApiKey(adminKey);
+    new cdk.CfnOutput(this, 'AdminApiKeyId', { value: adminKey.keyId });
 
     api.root
       .addResource('actors')

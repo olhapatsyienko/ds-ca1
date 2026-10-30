@@ -1,7 +1,9 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 
 export const logRequest = (event: APIGatewayProxyEvent): void => {
-  const username = event.requestContext.authorizer?.username || 'anonymous';
+  const username =
+    event.requestContext.authorizer?.username ||
+    (event.requestContext.identity?.apiKeyId ? 'admin' : 'anonymous');
   const params = Object.entries(event.queryStringParameters ?? {}).filter(
     (entry): entry is [string, string] => entry[1] !== undefined,
   );
