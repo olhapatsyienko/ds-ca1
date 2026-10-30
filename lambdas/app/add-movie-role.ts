@@ -6,7 +6,7 @@ import { isResponse, parseJsonObject, response } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
 
 const idFromBody = (value: unknown): number | undefined => {
-  if (typeof value === "number" && Number.isInteger(value)) return parseId(String(value));
+  if (typeof value === "number" && Number.isSafeInteger(value)) return parseId(String(value));
   if (typeof value === "string") return parseId(value);
   return undefined;
 };
