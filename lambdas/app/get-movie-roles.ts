@@ -40,6 +40,16 @@ export const handler = async (
     }
 
     if (actorId !== undefined) {
+      const actorResult = await ddb.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { PK: actorKey(actorId), SK: actorKey(actorId) },
+        })
+      );
+      if (!actorResult.Item) {
+        return response(404, { message: `Actor ${actorId} not found` });
+      }
+
       const roleResult = await ddb.send(
         new GetCommand({
           TableName: tableName,
