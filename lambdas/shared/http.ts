@@ -16,9 +16,13 @@ export const isResponse = (value: object): value is APIGatewayProxyResult => 'st
 export const parseJsonObject = (
   event: APIGatewayProxyEvent,
 ): Record<string, unknown> | APIGatewayProxyResult => {
+  let raw = event.body ?? '{}';
+  if (event.isBase64Encoded && event.body) {
+    raw = Buffer.from(event.body, 'base64').toString('utf8');
+  }
   let body: unknown;
   try {
-    body = JSON.parse(event.body ?? '{}');
+    body = JSON.parse(raw);
   } catch {
     return response(400, { message: 'Request body must be valid JSON' });
   }
