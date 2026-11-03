@@ -1,12 +1,10 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import {
   actorKey,
-  ddb,
+  getItem,
   isRoleItem,
   movieKey,
   parseId,
-  tableName,
   toActor,
   toRole,
 } from "../shared/db";
@@ -29,38 +27,21 @@ export const handler = async (
     return response(400, { message: "movie must be a positive integer" });
   }
   try {
-    const actorResult = await ddb.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: { PK: actorKey(actorId), SK: actorKey(actorId) },
-      })
-    );
-
-    if (!actorResult.Item) {
+    const actorItem = await getItem(actorKey(actorId), actorKey(actorId));
+    if (!actorItem) {
       return response(404, { message: `Actor ${actorId} not found` });
     }
-    const actor = toActor(actorResult.Item);
+    const actor = toActor(actorItem);
     if (movieId === undefined) {
       return response(200, { data: actor });
     }
 
-    const movieResult = await ddb.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: { PK: movieKey(movieId), SK: movieKey(movieId) },
-      })
-    );
-    if (!movieResult.Item) {
+    const movie = await getItem(movieKey(movieId), movieKey(movieId));
+    if (!movie) {
       return response(404, { message: `Movie ${movieId} not found` });
     }
 
-    const roleResult = await ddb.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: { PK: movieKey(movieId), SK: actorKey(actorId) },
-      })
-    );
-    const roleItem = roleResult.Item;
+    const roleItem = await getItem(movieKey(movieId), actorKey(actorId));
     if (!roleItem || !isRoleItem(roleItem)) {
       return response(200, { data: actor });
     }

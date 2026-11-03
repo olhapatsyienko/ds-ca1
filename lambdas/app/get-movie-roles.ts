@@ -1,8 +1,9 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import {
   actorKey,
   ddb,
+  getItem,
   isRoleItem,
   movieKey,
   parseId,
@@ -29,34 +30,18 @@ export const handler = async (
   }
 
   try {
-    const movieResult = await ddb.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: { PK: movieKey(movieId), SK: movieKey(movieId) },
-      })
-    );
-    if (!movieResult.Item) {
+    const movie = await getItem(movieKey(movieId), movieKey(movieId));
+    if (!movie) {
       return response(404, { message: `Movie ${movieId} not found` });
     }
 
     if (actorId !== undefined) {
-      const actorResult = await ddb.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { PK: actorKey(actorId), SK: actorKey(actorId) },
-        })
-      );
-      if (!actorResult.Item) {
+      const actor = await getItem(actorKey(actorId), actorKey(actorId));
+      if (!actor) {
         return response(404, { message: `Actor ${actorId} not found` });
       }
 
-      const roleResult = await ddb.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { PK: movieKey(movieId), SK: actorKey(actorId) },
-        })
-      );
-      const item = roleResult.Item;
+      const item = await getItem(movieKey(movieId), actorKey(actorId));
       const roles = item && isRoleItem(item) ? [toRole(item)] : [];
       return response(200, { data: roles });
     }
