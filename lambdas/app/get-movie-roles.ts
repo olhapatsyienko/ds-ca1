@@ -11,7 +11,7 @@ import {
   tableName,
   toRole,
 } from "../shared/db";
-import { isResponse, response } from "../shared/http";
+import { isResponse, response, serverError } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
 
 export const handler = async (
@@ -58,7 +58,6 @@ export const handler = async (
     const resultItems = queryResult.Items ?? [];
     return response(200, { data: resultItems.filter(isRoleItem).map(toRole) });
   } catch (err) {
-    console.error("DynamoDB error:", err);
-    return response(500, { message: "Internal server error" });
+    return serverError(err);
   }
 };

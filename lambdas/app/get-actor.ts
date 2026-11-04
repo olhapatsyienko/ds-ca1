@@ -9,7 +9,7 @@ import {
   toActor,
   toRole,
 } from "../shared/db";
-import { isResponse, response } from "../shared/http";
+import { isResponse, response, serverError } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
 
 export const handler = async (
@@ -47,7 +47,6 @@ export const handler = async (
       data: { ...actor, roleDescription: toRole(roleItem).roleDescription },
     });
   } catch (err) {
-    console.error("DynamoDB error:", err);
-    return response(500, { message: "Internal server error" });
+    return serverError(err);
   }
 };

@@ -13,6 +13,11 @@ export const response = (
 export const isResponse = (value: unknown): value is APIGatewayProxyResult =>
   typeof value === 'object' && value !== null && 'statusCode' in value;
 
+export const serverError = (err: unknown): APIGatewayProxyResult => {
+  console.error('DynamoDB error:', err);
+  return response(500, { message: 'Internal server error' });
+};
+
 // Parses a JSON object request body, or returns a 400 response.
 export const parseJsonObject = (
   event: APIGatewayProxyEvent,

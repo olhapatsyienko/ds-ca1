@@ -2,7 +2,7 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { actorKey, ddb, idFromBody, movieKey, type Role, tableName } from "../shared/db";
-import { isResponse, parseJsonObject, response } from "../shared/http";
+import { isResponse, parseJsonObject, response, serverError } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
 
 const textFromBody = (value: unknown): string | undefined =>
@@ -78,7 +78,6 @@ export const handler = async (
         return response(409, { message: `Role for actor ${actorId} in movie ${movieId} already exists` });
       }
     }
-    console.error("DynamoDB error:", err);
-    return response(500, { message: "Internal server error" });
+    return serverError(err);
   }
 };
