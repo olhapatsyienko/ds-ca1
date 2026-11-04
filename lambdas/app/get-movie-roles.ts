@@ -6,11 +6,12 @@ import {
   getItem,
   isRoleItem,
   movieKey,
+  optionalId,
   parseId,
   tableName,
   toRole,
 } from "../shared/db";
-import { response } from "../shared/http";
+import { isResponse, response } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
 
 export const handler = async (
@@ -23,11 +24,8 @@ export const handler = async (
     return response(400, { message: "movieID must be a positive integer" });
   }
 
-  const actorParam = event.queryStringParameters?.actor;
-  const actorId = parseId(actorParam);
-  if (actorParam !== undefined && actorId === undefined) {
-    return response(400, { message: "actor must be a positive integer" });
-  }
+  const actorId = optionalId(event.queryStringParameters?.actor, "actor");
+  if (isResponse(actorId)) return actorId;
 
   try {
     const movie = await getItem(movieKey(movieId), movieKey(movieId));

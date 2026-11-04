@@ -1,4 +1,6 @@
 // Table keys, item types and mappers. No AWS clients, so the CDK app can import it too.
+import type { APIGatewayProxyResult } from 'aws-lambda';
+import { response } from './http';
 
 // Single-table keys:
 //   Movie: m#movieID | m#movieID
@@ -53,4 +55,20 @@ export const parseId = (value: string | undefined): number | undefined => {
   if (trimmed === undefined || !/^[1-9]\d*$/.test(trimmed)) return undefined;
   const id = Number(trimmed);
   return Number.isSafeInteger(id) ? id : undefined;
+};
+
+export const optionalId = (
+  value: string | undefined,
+  name: string,
+): number | undefined | APIGatewayProxyResult => {
+  if (value === undefined) return undefined;
+  const id = parseId(value);
+  if (id === undefined) return response(400, { message: `${name} must be a positive integer` });
+  return id;
+};
+
+export const idFromBody = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isSafeInteger(value)) return parseId(String(value));
+  if (typeof value === 'string') return parseId(value);
+  return undefined;
 };

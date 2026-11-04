@@ -1,15 +1,9 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
-import { actorKey, ddb, movieKey, parseId, type Role, tableName } from "../shared/db";
+import { actorKey, ddb, idFromBody, movieKey, type Role, tableName } from "../shared/db";
 import { isResponse, parseJsonObject, response } from "../shared/http";
 import { logRequest } from "../shared/request-logger";
-
-const idFromBody = (value: unknown): number | undefined => {
-  if (typeof value === "number" && Number.isSafeInteger(value)) return parseId(String(value));
-  if (typeof value === "string") return parseId(value);
-  return undefined;
-};
 
 const textFromBody = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;

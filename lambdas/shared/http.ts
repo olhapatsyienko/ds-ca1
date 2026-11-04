@@ -10,7 +10,8 @@ export const response = (
   body: JSON.stringify(body),
 });
 
-export const isResponse = (value: object): value is APIGatewayProxyResult => 'statusCode' in value;
+export const isResponse = (value: unknown): value is APIGatewayProxyResult =>
+  typeof value === 'object' && value !== null && 'statusCode' in value;
 
 // Parses a JSON object request body, or returns a 400 response.
 export const parseJsonObject = (
