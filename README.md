@@ -1,8 +1,109 @@
 ## Cloud App Development - Assignment.
 
-This repository contains an implementation of the serverless web API specified below, and the CDK code to provision its infrastructure for the AWS cloud. However, it is incomplete as there are bugs and missing features.
+This repository contains the completed serverless movie-cast Web API and the CDK code that provisions it on AWS. The starter left the GET and POST behaviour unfinished. The work recorded below fills that in: both endpoints, their error handling, Cognito authentication on GET, an API key on POST and the shared helpers the handlers use.
 
 __Objective:__ Demonstrate your knowledge of serverless Web API design and deployment by completing the implementation.
+
+### What was done
+
+The commits follow the implementation strategy in the brief.
+
+#### 1. GET requests, happy path
+
+- `GET /movies/{movieID}/roles` returns every role for that movie as `{ "data": [ ... ] }`.
+- `?actor={actorID}` returns only that actor's role in the movie.
+- `GET /actors/{actorID}` returns the actor profile (id, name, date of birth, bio).
+- `?movie={movieID}` adds `roleDescription` when that actor has a role in the movie.
+
+Handlers map table items to `Role` and `Actor` with `toRole` and `toActor`. Responses contain model fields, not partition or sort keys.
+
+#### 2. Error handling on GET
+
+- `400` when a path or query id is not a positive integer.
+- `404` when the movie or the actor does not exist.
+- `500` with `{ "message": "Internal server error" }` when DynamoDB fails. The error is written to CloudWatch and the response body stays a message.
+
+#### 3. Authentication on GET
+
+Both GET methods use a request authorizer. It reads the `token` cookie set by `POST /auth/signin`, verifies the Cognito ID token, and passes the Cognito username to the handler. A missing or invalid token is denied.
+
+Each app handler logs one line, username then path and query, for example `doconnor   /movies/1234/roles`.
+
+Sign-in, against the Auth API URL printed as `AuthApiUrl`:
+
+1. `POST /auth/signup` with `{ "username", "password", "email" }`.
+2. `POST /auth/confirm_signup` with `{ "username", "code" }` using the emailed code.
+3. `POST /auth/signin` with `{ "username", "password" }`. Call GET with the header `Cookie: token=<token from the response>`.
+4. `POST /auth/signout` clears that cookie.
+
+#### 4. POST, happy path
+
+`POST /movies/roles` accepts `{ "movieId", "actorId", "roleName", "roleDescription" }`. A transaction checks that the movie and actor exist, then writes the role. Success is `201` with `{ "message": "Role added", "data": { ... } }`.
+
+#### 5. Error handling on POST
+
+- `400` when the body is not a JSON object, an id is invalid, or a role name or description is empty.
+- `404` when the movie or the actor does not exist.
+- `409` when that actor already has a role in the movie.
+- `500` uses the same message body as GET.
+
+#### 6. API key on POST
+
+`POST /movies/roles` requires an API key. API Gateway creates the key and a usage plan when `AppApiStack` is deployed and the stack outputs `AdminApiKeyId`. GET stays on the Cognito cookie. A request made with the key is logged as `admin`.
+
+Read the key value from the output id:
+
+```
+aws apigateway get-api-key --api-key <AdminApiKeyId> --include-value --region <region>
+```
+
+Send it as the header `x-api-key: <value>`.
+
+#### 7. Further error cases
+
+- An id must be a safe positive integer. `0`, `01`, `12.5`, and a value above `Number.MAX_SAFE_INTEGER` are `400`. Surrounding spaces are trimmed, so `" 1234 "` is `1234`. The same rule covers path parameters, query parameters and JSON body ids.
+- `GET /movies/{movieID}/roles?actor=` returns `404` when that actor does not exist and `200` with `"data": []` when the actor exists but has no role in the movie.
+- `GET /actors/{actorID}?movie=` still returns the profile without `roleDescription` when the movie exists and the actor has no role in it.
+- A base64-encoded POST body is decoded before it is parsed. A body that is still not a JSON object stays `400`.
+
+#### 8. Shared helpers
+
+- `getItem` in `lambdas/shared/db.ts` is the single GetItem call used by both GET handlers.
+- `parseId`, `optionalId`, and `idFromBody` in `lambdas/shared/model.ts` parse path, query and body ids.
+- `serverError` in `lambdas/shared/http.ts` is the shared `500` response. The POST transaction checks still return `404` or `409` before that helper.
+
+### Sample data
+
+`AppApiStack` writes the seed items once, when the stack is created.
+
+| Id | Record |
+| --- | --- |
+| 1234 | The Shawshank Redemption |
+| 1235 | The Dark Knight |
+| 1236 | Se7en |
+| 4321 | Morgan Freeman |
+| 4322 | Tim Robbins |
+| 4323 | Christian Bale |
+| 4324 | Heath Ledger |
+| 4325 | Brad Pitt |
+
+Checks that match the later commits:
+
+- Movie `1234` returns Red (actor `4321`) and Andy Dufresne (actor `4322`).
+- Movie `1234` with `?actor=4321` returns only Red.
+- Movie `1234` with `?actor=9999` is `404`, because that actor does not exist.
+- Movie `1235` with `?actor=4322` is `200` and `"data": []`, because Tim Robbins is not in The Dark Knight.
+
+### Deploy
+
+```
+npm install
+npx cdk deploy --all
+```
+
+The Auth API URL is the `AuthApiUrl` output of `CognitoStack`. The App API stage name is `dev`. Use the account region configured for the AWS CLI (this project was deployed to `eu-north-1`).
+
+Remove both stacks with `npx cdk destroy --all`.
 
 __Completion Date:__ 10/11/26, midnight.
 
